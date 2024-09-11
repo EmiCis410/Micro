@@ -1,0 +1,52 @@
+;Programa para calcular la raíz cuadrada de un número entero mediante sumas
+;El número de entrada está en B de un rango 0-99
+;El resultado se almacena en C
+
+	.org 0000h
+	ld b, 16h  	;Se carga cualquier numero del 0 al 99 en B, en este caso el 16
+	ld c, 0		;C será el registro donde se mostrará el resultado de la raiz
+	ld a, b 	;En A estará la raíz cuadrada a modifcar y B es el sumador
+	cp 0		;Se realiza una comparación si es 0 o 1
+	jr Z, salida	;Si se cumple, el programa seguira su ejecución hasta que llegue al punto donde la sentencia termina su ejecución
+	cp 1
+	jr Z, salida
+
+	ld d,1		;Para los D y E se cargan con el valor de 1, pues estos serviran de referencia para el ciclo (loop)
+	ld e,1
+
+loop:
+	ld a,b		;Se carga B en A
+	cp d		;Se realiza una comparación de B con D, que es el sumador
+	jr c, final	;Si B<D, se cumple la condición y se salta a final, es decirl, se encontró la raiz
+	inc e		;Si no, se sigue con los incrementos en E donde se realizaran las multiplicaciones para hayar la raíz
+	ld h,0
+	ld l,0
+
+multiplicacion:		;La multiplicación por sumas sucesivas
+	ld a,l
+	add a,e		;Se van sumando las unidades guardadas en E
+	ld l,a
+	inc h		;Se van haciendo incrementos en h que es donde estan alamceandos las raices muestra
+	ld a,e
+	cp h
+	jr nz, multiplicacion ;El resultado se almacena en D, y el programa vuelve al ciclo para continuar con el cálculo
+	ld d,l
+	jr loop
+
+salida:
+	ld c,a
+	halt
+
+final:
+	dec e
+	ld c,e
+	halt
+;El valor correcto se guarda en C.
+
+	.end
+
+
+end_program:
+    halt              ;Por fin termina el programa
+
+.end
