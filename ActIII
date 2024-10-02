@@ -1,0 +1,209 @@
+;Programa de generación de números pseudoaleatorios, ordenación y repetición.
+;Genera 20 números pseudoaleatorios de 1 byte, los muestra, los ordena
+;ascendente o descendente, ;y permite repetir o finalizar el programa.
+
+        ORG 0x0000  	     ;Dirección de inicio del programa
+        LD SP,0xFFFF
+
+Inicio:
+        CALL MensajeI        ;Muestra mensaje inicial
+        CALL GenNumeros          ;Genera 20 números pseudoaleatorios
+        CALL Muestra         ;Muestra los números generados
+
+        CALL PreOrden        ;Pregunta si ascendente o descendente
+        CALL OrdNum	     ;Ordena los números de acuerdo a la selección
+
+        CALL Muestra	     ;Muestra los números ordenados
+
+        CALL PreRepetir      ;Pregunta si se desea repetir o finalizar
+        JP Z,Salir           ;Si selecciona salir, termina el programa
+        JP Inicio            ;Si selecciona repetir, regresa al inicio
+
+;----Subrutina: Mostrar mensaje de inicio----
+MensajeI:
+        LD HL,MensajeII
+        CALL TextoI
+        RET
+
+;-----Subrutina: Generar números pseudoaleatorios-----
+GenNumeros:
+        LD BC,20          ; 20 números a generar
+        LD HL,Numeros     ; Dirección para almacenar los números
+
+Loop:
+        CALL Random
+        LD (HL),A       ;Guarda el número generado en la memoria
+        INC HL		;Apunta al siguiente espacio en memoria
+        DEC BC
+        LD A,B
+        OR C
+        JP NZ,Loop	;Repite hasta generar 20 números
+        RET
+
+;-----Subrutina: Mostrar números-----
+Muestra:
+        LD BC,20
+        LD HL,Numeros
+MuestraLoop:
+        LD A,(HL)	    ;Carga el número de memoria
+        CALL MostrarNumero  ;Muestra el número en decimal
+        CALL MostrarSalto   ;Muestra un salto de línea
+        INC HL
+        DEC BC
+        LD A,B
+        OR C
+        JP NZ,MuestraLoop   ;Repite hasta mostrar todos
+        RET
+
+;-----Subrutina: Preguntar cómo ordenar-----
+PreOrden:
+        LD HL,MensajeOrden
+        CALL TextoI
+        CALL LeerEntrada   ;Espera la entrada del usuario (1: ascendente, 2: descendente)
+        CP '1'
+        JP Z,Asc
+        CP '2'
+        JP Z,Desc
+        JP PreOrden	   ;Si la entrada es inválida, vuelve a preguntar
+
+Asc:
+        LD A,1
+        LD (OrdenAsc),A
+        RET
+
+Desc:
+        LD A,0
+        LD (OrdenAsc),A
+        RET
+
+;-----Subrutina: Ordenar números -----
+OrdNum:
+        LD DE,Numeros        ;Dirección de los números originales
+        LD HL,Numeros        ;Inicializamos el puntero a la lista a ordenar
+        LD BC,19             ;Número de pasadas (N-1)
+
+BurbujaOutLoop:
+        LD B,20              ;Comparaciones por cada pasada
+        DEC B
+        LD HL,Numeros        ;Reiniciamos el puntero a la lista
+
+BurbujaInLoop:
+        LD A,(HL)            ;Cargamos el número actual
+        LD D,A
+        INC HL
+        LD A,(HL)            ;Cargamos el siguiente número
+        LD E,A
+
+;Verificar si se intercambian los números
+        LD A,(OrdenAsc)
+        CP 1
+        JP Z,CompararAsc
+        JP CompararDesc
+
+CompararAsc:
+        CP D
+        JP NC,NoSwap
+
+CompararDesc:
+        CP D
+        JP C,NoSwap
+
+;Intercambio
+        LD (HL),D
+        DEC HL
+        LD (HL),E
+
+NoSwap:
+        INC HL
+        DJNZ BurbujaInLoop ;Repite hasta terminar la pasada
+        DEC C
+        JP NZ,BurbujaOutLoop
+        RET
+
+;----Subrutina: Preguntar si repetir----
+PreRepetir:
+        LD HL,MensajeRepetir
+        CALL TextoI
+        CALL LeerEntrada       ;Espera la entrada del usuario (1: repetir, 2: salir)
+        CP '1'
+        JP Z,Repetir
+        CP '2'
+        JP Z,Salir
+        JP PreRepetir    ;Si la entrada es inválida, vuelve a preguntar
+
+Repetir:
+        XOR A  ;Borrar el registro de repetición
+        RET
+
+;----Subrutina: Generar número pseudoaleatorio----
+Random:
+
+        LD A,R    ;Carga el registro
+        RET
+
+;----Subrutina: Mostrar texto----
+TextoI:
+        LD A,(HL)
+        CP 0
+        RET Z
+        CALL MostrarCaracter
+        INC HL
+        JP TextoI
+
+;----Subrutina: Mostrar número en decimal----
+MostrarNumero:
+        LD E,A
+        CALL ConvertirDecimal ;Convierte el valor de A a decimal
+        CALL TextoI           ;Muestra el número convertido
+        RET
+
+;---Subrutina: Mostrar salto de línea----
+MostrarSalto:
+        LD A,0x0A  ;Salto de línea
+        CALL MostrarCaracter
+        LD A,0x0D  ;Retorno de carro
+        CALL MostrarCaracter
+        RET
+
+;----Subrutina: Leer entrada del usuario----
+LeerEntrada:
+        ;Leer un carácter del teclado
+        IN A,(0x00)  ;Lee la entrada del puerto
+        RET
+
+;----Subrutina: Mostrar un carácter----
+MostrarCaracter:
+        ;Envío de carácter a la pantalla
+        OUT (0x00),A  ;Envía el carácter al puerto de salida
+        RET
+
+;----Subrutina: Convertir a decimal----
+ConvertirDecimal:
+        ;Convierte el valor de A
+        RET
+
+;----Mensajes de texto----
+MensajeII:
+        DB 'Iniciando la generacion de numeros pseudoaleatorios', 0
+MensajeOrden:
+        DB '¿Desea ordenar los numeros ascendente (1) o descendente (2)?', 0
+MensajeRepetir:
+        DB '¿Desea repetir el programa (1) o finalizar (2)?', 0
+
+;----Áreas de memoria----
+Numeros:
+        DS 20      ;Espacio para 20 números pseudoaleatorios
+NumerosOrdenados:
+        DS 20      ;Espacio para 20 números ordenados
+OrdenAsc:
+        DB 1       ;Indicador de orden (1: ascendente, 0: descendente)
+
+Salir:
+        LD HL,MensajeSalir
+        CALL TextoI
+        HALT        ;Termina el programa
+
+MensajeSalir:
+        DB 'Saliendo del programa...', 0
+
+        END
