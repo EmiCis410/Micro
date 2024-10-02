@@ -1,0 +1,267 @@
+---------------------------------------------
+OSHONSOFT Z80 ASSEMBLER LISTING
+Line   Addr Opcode      Label   Instruction
+---------------------------------------------
+0001   0000             ;Programa de generación de números pseudoaleatorios, ordenación y repetición.
+0002   0000             ;Genera 20 números pseudoaleatorios de 1 byte, los muestra, los ordena
+0003   0000             ;ascendente o descendente, ;y permite repetir o finalizar el programa.
+0004   0000             
+0005   0000                     ORG 0x0000  	     ;Dirección de inicio del programa
+0006   0000 31 FF FF            LD SP,0xFFFF
+0007   0003             
+0008   0003             Inicio:
+0009   0003 CD 1E 00            CALL MensajeI        ;Muestra mensaje inicial
+0010   0006 CD 25 00            CALL GenNumeros          ;Genera 20 números pseudoaleatorios
+0011   0009 CD 37 00            CALL Muestra         ;Muestra los números generados
+0012   000C             
+0013   000C CD 4C 00            CALL PreOrden        ;Pregunta si ascendente o descendente
+0014   000F CD 6E 00            CALL OrdNum	     ;Ordena los números de acuerdo a la selección
+0015   0012             
+0016   0012 CD 37 00            CALL Muestra	     ;Muestra los números ordenados
+0017   0015             
+0018   0015 CD A0 00            CALL PreRepetir      ;Pregunta si se desea repetir o finalizar
+0019   0018 CA AC 01            JP Z,Salir           ;Si selecciona salir, termina el programa
+0020   001B C3 03 00            JP Inicio            ;Si selecciona repetir, regresa al inicio
+0021   001E             
+0022   001E             ;----Subrutina: Mostrar mensaje de inicio----
+0023   001E             MensajeI:
+0024   001E 21 E0 00            LD HL,MensajeII
+0025   0021 CD BB 00            CALL TextoI
+0026   0024 C9                  RET
+0027   0025             
+0028   0025             ;-----Subrutina: Generar números pseudoaleatorios-----
+0029   0025             GenNumeros:
+0030   0025 01 14 00            LD BC,20          ; 20 números a generar
+0031   0028 21 83 01            LD HL,Numeros     ; Dirección para almacenar los números
+0032   002B             
+0033   002B             Loop:
+0034   002B CD B8 00            CALL Random
+0035   002E 77                  LD (HL),A       ;Guarda el número generado en la memoria
+0036   002F 23                  INC HL		;Apunta al siguiente espacio en memoria
+0037   0030 0B                  DEC BC
+0038   0031 78                  LD A,B
+0039   0032 B1                  OR C
+0040   0033 C2 2B 00            JP NZ,Loop	;Repite hasta generar 20 números
+0041   0036 C9                  RET
+0042   0037             
+0043   0037             ;-----Subrutina: Mostrar números-----
+0044   0037             Muestra:
+0045   0037 01 14 00            LD BC,20
+0046   003A 21 83 01            LD HL,Numeros
+0047   003D             MuestraLoop:
+0048   003D 7E                  LD A,(HL)	    ;Carga el número de memoria
+0049   003E CD C6 00            CALL MostrarNumero  ;Muestra el número en decimal
+0050   0041 CD CE 00            CALL MostrarSalto   ;Muestra un salto de línea
+0051   0044 23                  INC HL
+0052   0045 0B                  DEC BC
+0053   0046 78                  LD A,B
+0054   0047 B1                  OR C
+0055   0048 C2 3D 00            JP NZ,MuestraLoop   ;Repite hasta mostrar todos
+0056   004B C9                  RET
+0057   004C             
+0058   004C             ;-----Subrutina: Preguntar cómo ordenar-----
+0059   004C             PreOrden:
+0060   004C 21 14 01            LD HL,MensajeOrden
+0061   004F CD BB 00            CALL TextoI
+0062   0052 CD D9 00            CALL LeerEntrada   ;Espera la entrada del usuario (1: ascendente, 2: descendente)
+0063   0055 FE 31               CP '1'
+0064   0057 CA 62 00            JP Z,Asc
+0065   005A FE 32               CP '2'
+0066   005C CA 68 00            JP Z,Desc
+0067   005F C3 4C 00            JP PreOrden	   ;Si la entrada es inválida, vuelve a preguntar
+0068   0062             
+0069   0062             Asc:
+0070   0062 3E 01               LD A,1
+0071   0064 32 AB 01            LD (OrdenAsc),A
+0072   0067 C9                  RET
+0073   0068             
+0074   0068             Desc:
+0075   0068 3E 00               LD A,0
+0076   006A 32 AB 01            LD (OrdenAsc),A
+0077   006D C9                  RET
+0078   006E             
+0079   006E             ;-----Subrutina: Ordenar números -----
+0080   006E             OrdNum:
+0081   006E 11 83 01            LD DE,Numeros        ;Dirección de los números originales
+0082   0071 21 83 01            LD HL,Numeros        ;Inicializamos el puntero a la lista a ordenar
+0083   0074 01 13 00            LD BC,19             ;Número de pasadas (N-1)
+0084   0077             
+0085   0077             BurbujaOutLoop:
+0086   0077 06 14               LD B,20              ;Comparaciones por cada pasada
+0087   0079 05                  DEC B
+0088   007A 21 83 01            LD HL,Numeros        ;Reiniciamos el puntero a la lista
+0089   007D             
+0090   007D             BurbujaInLoop:
+0091   007D 7E                  LD A,(HL)            ;Cargamos el número actual
+0092   007E 57                  LD D,A
+0093   007F 23                  INC HL
+0094   0080 7E                  LD A,(HL)            ;Cargamos el siguiente número
+0095   0081 5F                  LD E,A
+0096   0082             
+0097   0082             ;Verificar si se intercambian los números
+0098   0082 3A AB 01            LD A,(OrdenAsc)
+0099   0085 FE 01               CP 1
+0100   0087 CA 8D 00            JP Z,CompararAsc
+0101   008A C3 91 00            JP CompararDesc
+0102   008D             
+0103   008D             CompararAsc:
+0104   008D BA                  CP D
+0105   008E D2 98 00            JP NC,NoSwap
+0106   0091             
+0107   0091             CompararDesc:
+0108   0091 BA                  CP D
+0109   0092 DA 98 00            JP C,NoSwap
+0110   0095             
+0111   0095             ;Intercambio
+0112   0095 72                  LD (HL),D
+0113   0096 2B                  DEC HL
+0114   0097 73                  LD (HL),E
+0115   0098             
+0116   0098             NoSwap:
+0117   0098 23                  INC HL
+0118   0099 10 E2               DJNZ BurbujaInLoop ;Repite hasta terminar la pasada
+0119   009B 0D                  DEC C
+0120   009C C2 77 00            JP NZ,BurbujaOutLoop
+0121   009F C9                  RET
+0122   00A0             
+0123   00A0             ;----Subrutina: Preguntar si repetir----
+0124   00A0             PreRepetir:
+0125   00A0 21 52 01            LD HL,MensajeRepetir
+0126   00A3 CD BB 00            CALL TextoI
+0127   00A6 CD D9 00            CALL LeerEntrada       ;Espera la entrada del usuario (1: repetir, 2: salir)
+0128   00A9 FE 31               CP '1'
+0129   00AB CA B6 00            JP Z,Repetir
+0130   00AE FE 32               CP '2'
+0131   00B0 CA AC 01            JP Z,Salir
+0132   00B3 C3 A0 00            JP PreRepetir    ;Si la entrada es inválida, vuelve a preguntar
+0133   00B6             
+0134   00B6             Repetir:
+0135   00B6 AF                  XOR A  ;Borrar el registro de repetición
+0136   00B7 C9                  RET
+0137   00B8             
+0138   00B8             ;----Subrutina: Generar número pseudoaleatorio----
+0139   00B8             Random:
+0140   00B8                     ;Algoritmo simple de generación de número pseudoaleatorio
+0141   00B8 ED 5F               LD A,R    ;Carga el registro del refresco de memoria (aleatorio)
+0142   00BA C9                  RET
+0143   00BB             
+0144   00BB             ;----Subrutina: Mostrar texto----
+0145   00BB             TextoI:
+0146   00BB 7E                  LD A,(HL)
+0147   00BC FE 00               CP 0
+0148   00BE C8                  RET Z
+0149   00BF CD DC 00            CALL MostrarCaracter
+0150   00C2 23                  INC HL
+0151   00C3 C3 BB 00            JP TextoI
+0152   00C6             
+0153   00C6             ;----Subrutina: Mostrar número en decimal----
+0154   00C6             MostrarNumero:
+0155   00C6 5F                  LD E,A
+0156   00C7 CD DF 00            CALL ConvertirDecimal ;Convierte el valor de A a decimal
+0157   00CA CD BB 00            CALL TextoI           ;Muestra el número convertido
+0158   00CD C9                  RET
+0159   00CE             
+0160   00CE             ;---Subrutina: Mostrar salto de línea----
+0161   00CE             MostrarSalto:
+0162   00CE 3E 0A               LD A,0x0A  ;Salto de línea
+0163   00D0 CD DC 00            CALL MostrarCaracter
+0164   00D3 3E 0D               LD A,0x0D  ;Retorno de carro
+0165   00D5 CD DC 00            CALL MostrarCaracter
+0166   00D8 C9                  RET
+0167   00D9             
+0168   00D9             ;----Subrutina: Leer entrada del usuario----
+0169   00D9             LeerEntrada:
+0170   00D9                     ;Leer un carácter del teclado
+0171   00D9 DB 00               IN A,(0x00)  ;Lee la entrada del puerto
+0172   00DB C9                  RET
+0173   00DC             
+0174   00DC             ;----Subrutina: Mostrar un carácter----
+0175   00DC             MostrarCaracter:
+0176   00DC                     ;Envío de carácter a la pantalla
+0177   00DC D3 00               OUT (0x00),A  ;Envía el carácter al puerto de salida
+0178   00DE C9                  RET
+0179   00DF             
+0180   00DF             ;----Subrutina: Convertir a decimal----
+0181   00DF             ConvertirDecimal:
+0182   00DF                     ;Convierte el valor de A
+0183   00DF C9                  RET
+0184   00E0             
+0185   00E0             ;----Mensajes de texto----
+0186   00E0             MensajeII:
+0187   00E0 49 6E 69 63         DB 'Iniciando la generacion de numeros pseudoaleatorios', 0
+0187   00E4 69 61 6E 64 
+0187   00E8 6F 20 6C 61 
+0187   00EC 20 67 65 6E 
+0187   00F0 65 72 61 63 
+0187   00F4 69 6F 6E 20 
+0187   00F8 64 65 20 6E 
+0187   00FC 75 6D 65 72 
+0187   0100 6F 73 20 70 
+0187   0104 73 65 75 64 
+0187   0108 6F 61 6C 65 
+0187   010C 61 74 6F 72 
+0187   0110 69 6F 73 00 
+0188   0114             MensajeOrden:
+0189   0114 C2 BF 44 65         DB '¿Desea ordenar los numeros ascendente (1) o descendente (2)?', 0
+0189   0118 73 65 61 20 
+0189   011C 6F 72 64 65 
+0189   0120 6E 61 72 20 
+0189   0124 6C 6F 73 20 
+0189   0128 6E 75 6D 65 
+0189   012C 72 6F 73 20 
+0189   0130 61 73 63 65 
+0189   0134 6E 64 65 6E 
+0189   0138 74 65 20 28 
+0189   013C 31 29 20 6F 
+0189   0140 20 64 65 73 
+0189   0144 63 65 6E 64 
+0189   0148 65 6E 74 65 
+0189   014C 20 28 32 29 
+0189   0150 3F 00       
+0190   0152             MensajeRepetir:
+0191   0152 C2 BF 44 65         DB '¿Desea repetir el programa (1) o finalizar (2)?', 0
+0191   0156 73 65 61 20 
+0191   015A 72 65 70 65 
+0191   015E 74 69 72 20 
+0191   0162 65 6C 20 70 
+0191   0166 72 6F 67 72 
+0191   016A 61 6D 61 20 
+0191   016E 28 31 29 20 
+0191   0172 6F 20 66 69 
+0191   0176 6E 61 6C 69 
+0191   017A 7A 61 72 20 
+0191   017E 28 32 29 3F 
+0191   0182 00          
+0192   0183             
+0193   0183             ;----Áreas de memoria----
+0194   0183             Numeros:
+0195   0183 00 00 00 00         DS 20      ;Espacio para 20 números pseudoaleatorios
+0195   0187 00 00 00 00 
+0195   018B 00 00 00 00 
+0195   018F 00 00 00 00 
+0195   0193 00 00 00 00 
+0196   0197             NumerosOrdenados:
+0197   0197 00 00 00 00         DS 20      ;Espacio para 20 números ordenados
+0197   019B 00 00 00 00 
+0197   019F 00 00 00 00 
+0197   01A3 00 00 00 00 
+0197   01A7 00 00 00 00 
+0198   01AB             OrdenAsc:
+0199   01AB 01                  DB 1       ;Indicador de orden (1: ascendente, 0: descendente)
+0200   01AC             
+0201   01AC             Salir:
+0202   01AC 21 B3 01            LD HL,MensajeSalir
+0203   01AF CD BB 00            CALL TextoI
+0204   01B2 76                  HALT        ; Termina el programa
+0205   01B3             
+0206   01B3             MensajeSalir:
+0207   01B3 53 61 6C 69         DB 'Saliendo del programa...', 0
+0207   01B7 65 6E 64 6F 
+0207   01BB 20 64 65 6C 
+0207   01BF 20 70 72 6F 
+0207   01C3 67 72 61 6D 
+0207   01C7 61 2E 2E 2E 
+0207   01CB 00          
+0208   01CC             
+0209   01CC                     END
+Number of errors = 0
